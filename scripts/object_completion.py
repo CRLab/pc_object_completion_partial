@@ -7,6 +7,8 @@ import mcubes
 import numpy as np
 import sensor_msgs.point_cloud2 as pc2
 import collada
+import shape_msgs.msg   
+import geometry_msgs.msg
 
 PERCENT_PATCH_SIZE = (4.0/5.0)
 PERCENT_X = 0.5
@@ -83,7 +85,16 @@ def create_voxel_grid_around_point_scaled(points, patch_center,
     voxel_grid[mask] = 1
 
     return voxel_grid
+
+def rescale_mesh(vertices,
+            patch_center,
+            voxel_resolution,
+            pc_center_in_voxel_grid):
     
+    # Reverse of the following function solve for points
+    # vertices = (points - np.array(patch_center) + np.array(pc_center_in_voxel_grid) * voxel_resolution) / voxel_resolution
+    return vertices * voxel_resolution - np.array(pc_center_in_voxel_grid) * voxel_resolution + np.array(patch_center)
+
 class ObjectCompletionAction(object):
     # create messages that are used to publish feedback/result
     _feedback = scene_completion.msg.CompletePartialCloudFeedback()
@@ -124,11 +135,34 @@ class ObjectCompletionAction(object):
         
 
         v, t = mcubes.marching_cubes(voxel_grid[:,:,:,0], 0.5)
+        v = rescale_mesh(v, 
+            center,
+            vox_resolution, 
+            pc_center_in_voxel_grid)
+
+
+        mesh = shape_msgs.msg.Mesh()
+        for tri in t:
+            t_msg = shape_msgs.msg.MeshTriangle()
+            t_msg.vertex_indices[0] = tri[0]
+            t_msg.vertex_indices[1] = tri[1]
+            t_msg.vertex_indices[2] = tri[2]
+            mesh.vertices.append(t_msg)
+
+        for vert in v:
+            v_msg = geometry_msgs.msg.Point()
+            v_msg.x = vert[0]
+            v_msg.y = vert[1]
+            v_msg.z = vert[2]
+            mesh.vertices.append(v_msg)
+        
+        print("about to run mcubes")
+
         mcubes.export_mesh(v,t,"/home/bo/marching_mesh_40.dae", "model")
 
         import IPython
         IPython.embed()
-
+        self._result.mesh = mesh
         rospy.loginfo('Succeeded')
         self._as.set_succeeded(self._result)
 
