@@ -113,6 +113,7 @@ class ObjectCompletionAction(object):
 
     
     def execute_cb(self, goal):
+        rospy.loginfo("received new goal")
         points = []
 
         gen = pc2.read_points(goal.partial_cloud, skip_nans=True, field_names=("x", "y", "z"))
@@ -133,7 +134,7 @@ class ObjectCompletionAction(object):
                                             patch_size,
                                             pc_center_in_voxel_grid)
         
-
+        rospy.loginfo("about to run mcubes")
         v, t = mcubes.marching_cubes(voxel_grid[:,:,:,0], 0.5)
         v = rescale_mesh(v, 
             center,
@@ -147,7 +148,7 @@ class ObjectCompletionAction(object):
             t_msg.vertex_indices[0] = tri[0]
             t_msg.vertex_indices[1] = tri[1]
             t_msg.vertex_indices[2] = tri[2]
-            mesh.vertices.append(t_msg)
+            mesh.triangles.append(t_msg)
 
         for vert in v:
             v_msg = geometry_msgs.msg.Point()
@@ -156,12 +157,10 @@ class ObjectCompletionAction(object):
             v_msg.z = vert[2]
             mesh.vertices.append(v_msg)
         
-        print("about to run mcubes")
 
+
+        #for debugging can save to file
         mcubes.export_mesh(v,t,"/home/bo/marching_mesh_40.dae", "model")
-
-        import IPython
-        IPython.embed()
         self._result.mesh = mesh
         rospy.loginfo('Succeeded')
         self._as.set_succeeded(self._result)
