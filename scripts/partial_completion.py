@@ -168,5 +168,5 @@ class ObjectCompletionAction(object):
 
 if __name__ == '__main__':
     rospy.init_node('object_completion')
-    server = ObjectCompletionAction(rospy.get_name())
+    server = ObjectCompletionAction('object_completion')
     rospy.spin()
