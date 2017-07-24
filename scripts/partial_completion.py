@@ -2,12 +2,12 @@
 
 import rospy
 import actionlib
-import scene_completion.msg
+import pc_pipeline_msgs.msg
 import mcubes
 import numpy as np
 import sensor_msgs.point_cloud2 as pc2
 import collada
-import shape_msgs.msg   
+import shape_msgs.msg
 import geometry_msgs.msg
 
 PERCENT_PATCH_SIZE = (4.0/5.0)
@@ -97,17 +97,17 @@ def rescale_mesh(vertices,
 
 class ObjectCompletionAction(object):
     # create messages that are used to publish feedback/result
-    _feedback = scene_completion.msg.CompletePartialCloudFeedback()
-    _result = scene_completion.msg.CompletePartialCloudResult()
+    _feedback = pc_pipeline_msgs.msg.CompletePartialCloudFeedback()
+    _result = pc_pipeline_msgs.msg.CompletePartialCloudResult()
 
     
 
     def __init__(self, name):
         self._action_name = name
         self._as = actionlib.SimpleActionServer(self._action_name, 
-                                            scene_completion.msg.CompletePartialCloudAction, 
-                                            execute_cb=self.execute_cb, 
-                                            auto_start = False)
+                                                pc_pipeline_msgs.msg.CompletePartialCloudAction, 
+                                                execute_cb=self.execute_cb, 
+                                                auto_start = False)
         self._as.start()
     
 
@@ -159,8 +159,8 @@ class ObjectCompletionAction(object):
         
 
 
-        #for debugging can save to file
-        mcubes.export_mesh(v,t,"/home/bo/marching_mesh_40.dae", "model")
+        # for debugging can save to file
+        mcubes.export_mesh(v, t, "/home/jvarley/marching_mesh_40.dae", "model")
         self._result.mesh = mesh
         rospy.loginfo('Succeeded')
         self._as.set_succeeded(self._result)

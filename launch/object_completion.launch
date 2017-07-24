@@ -1,5 +1,0 @@
-<launch>
-	<arg name="robot" />
-	<node name="object_completion" pkg="object_completion" type="partial_completion.py" output="screen"/>
-
-</launch>
