@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>pc_partial_mesh</name>
+  <name>pc_object_completion_partial</name>
   <version>0.0.0</version>
-  <description>The pc_partial_mesh package for creating a mesh from a pointcloud</description>
+  <description>The pc_object_completion_partial package for creating a mesh from a pointcloud by simply voxelizing the pointcloud and running it through marching cubes.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
