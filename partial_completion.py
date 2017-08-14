@@ -9,6 +9,11 @@ import sensor_msgs.point_cloud2 as pc2
 import collada
 import shape_msgs.msg
 import geometry_msgs.msg
+import tempfile
+import subprocess 
+import rospkg
+from curvox import mesh_conversions
+import os 
 
 PERCENT_PATCH_SIZE = (4.0/5.0)
 PERCENT_X = 0.5
@@ -104,6 +109,10 @@ class ObjectCompletionAction(object):
 
     def __init__(self, name):
         self._action_name = name
+
+        rospack = rospkg.RosPack()
+        pkg_path = rospack.get_path("pc_object_completion_partial")
+        self.mlx_script_filepath = pkg_path + "/smooth_partial.mlx"
         self._as = actionlib.SimpleActionServer(self._action_name, 
                                                 pc_pipeline_msgs.msg.CompletePartialCloudAction, 
                                                 execute_cb=self.execute_cb, 
@@ -121,7 +130,7 @@ class ObjectCompletionAction(object):
             points.append(p)
             
         pc = np.array(points)
-        patch_size = 40
+        patch_size = 120
         vox_resolution = get_voxel_resolution(pc, patch_size)
 
         center = get_center(pc)
@@ -141,32 +150,26 @@ class ObjectCompletionAction(object):
             vox_resolution, 
             pc_center_in_voxel_grid)
 
+        unsmoothed_handle, unsmoothed_filename = tempfile.mkstemp(suffix=".dae")
+        smoothed_handle, smoothed_filename = tempfile.mkstemp(suffix=".ply")
+        mcubes.export_mesh(v, t, unsmoothed_filename, "model")
+        cmd_str = "meshlabserver -i " + unsmoothed_filename + " -o " + smoothed_filename + " -s " + str(self.mlx_script_filepath) 
+        subprocess.call(cmd_str.split())
 
-        mesh = shape_msgs.msg.Mesh()
-        for tri in t:
-            t_msg = shape_msgs.msg.MeshTriangle()
-            t_msg.vertex_indices[0] = tri[0]
-            t_msg.vertex_indices[1] = tri[1]
-            t_msg.vertex_indices[2] = tri[2]
-            mesh.triangles.append(t_msg)
-
-        for vert in v:
-            v_msg = geometry_msgs.msg.Point()
-            v_msg.x = vert[0]
-            v_msg.y = vert[1]
-            v_msg.z = vert[2]
-            mesh.vertices.append(v_msg)
         
+        mesh = mesh_conversions.read_mesh_msg_from_ply_filepath(smoothed_filename)
 
-
-        # for debugging can save to file
-        mcubes.export_mesh(v, t, "/home/jvarley/marching_mesh_40.dae", "model")
+        if os.path.exists(unsmoothed_filename):
+            os.remove(unsmoothed_filename)
+        if os.path.exists(smoothed_filename):
+            os.remove(smoothed_filename)
+        
         self._result.mesh = mesh
         rospy.loginfo('Succeeded')
         self._as.set_succeeded(self._result)
 
 
 if __name__ == '__main__':
-    rospy.init_node('object_completion')
-    server = ObjectCompletionAction('object_completion')
+    rospy.init_node('partial_object_completion')
+    server = ObjectCompletionAction('partial_object_completion')
     rospy.spin()
